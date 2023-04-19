@@ -15,6 +15,8 @@ setup(
         'spacy',
         'sentence_transformers',
         'scipy',
+        #'en_core_web_sm',
+        'spacy-sentence-bert',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
