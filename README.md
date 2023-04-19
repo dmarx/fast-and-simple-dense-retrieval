@@ -63,7 +63,7 @@ index = DocumentIndex(
 
 FASDR is designed to be fast and simple, with a focus on ease of use and minimal setup. It uses FAISS for similarity search, which is a highly optimized library for dense vector search, and SpaCy with the Sentence-BERT component for embedding text. The library is built around two main classes:
 
-* Document: Represents a single document and its embeddings.  
-* DocumentIndex: Represents an index of documents and their embeddings.  
+* `Document`: Represents a single document and its embeddings.  
+* `DocumentIndex`: Represents an index of documents and their embeddings.  
 
 `Document` objects are created by passing in the path to the document file, and can be used to search for similar sentences within the document. `DocumentIndex` objects are created by passing in the root directory containing the documents to index, and can be used to search for similar documents or sentences across all the indexed documents.
