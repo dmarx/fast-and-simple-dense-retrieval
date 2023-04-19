@@ -336,7 +336,7 @@ class DocumentIndex:
         if query_embedding is None:
             query_embedding = self.nlp(query).vector
         doc_subset = list(self.documents.values())
-        return self.search_in_documents(query_embedding=query_embedding, docs=doc_subset, k=n_sents)
+        return self.search_in_documents(query_embedding=query_embedding, docs=doc_subset, k=k)
 
     def search_sentences_targeted(
         self, 
