@@ -11,13 +11,19 @@ FASDR is a simple and lightweight library for fast and efficient document retrie
 
 ## Installation
 
-To use FASDR, you will need to install the required packages:
+First, install `fasdr` via pip:
 
 ```
 pip install git+https://github.com/dmarx/fast-and-simple-dense-retrieval
 ```
 
-Then, simply download or clone the FASDR library to your project folder.
+Next, download sentence tokenization language model for
+spacy:
+
+<!--To do: language agnostic sentencizer? language detection?-->
+```
+python -m spacy download en_core_web_trf
+```
 
 ## Quick Start
 
