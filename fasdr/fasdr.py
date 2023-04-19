@@ -65,7 +65,7 @@ def search_index(index: KDTree, query: np.ndarray, k: int = 1) -> Tuple[np.ndarr
         Tuple[np.ndarray, np.ndarray]: The distances and indices of the nearest neighbors.
     """
     distances, indices = index.query(query, k)
-    return distances, indices
+    return distances.ravel(), indices.ravel()
 
 
 class Document:
@@ -110,7 +110,8 @@ class Document:
         self._load_or_construct_summary_embedding(force_reindex=force_reindex)
 
     def _load_or_construct_summary_embedding(self, force_reindex: bool = False):
-        summary_save_path = self.file_path.with_stem(self.file_path.stem + "_summary_embedding")
+        #summary_save_path = self.file_path.with_stem(self.file_path.stem + "_summary_embedding")
+        summary_save_path = self.file_path.with_name(self.file_path.stem + "_summary_embedding.pkl")
             
         if self.file_path.exists() and summary_save_path.exists():
             out_of_date = self.file_path.stat().st_mtime > summary_save_path.stat().st_mtime
@@ -119,7 +120,14 @@ class Document:
 
         if out_of_date or force_reindex:
             with self.file_path.open('r') as f:
-                doc = self.nlp(f.read())
+                try:
+                    text = f.read()
+                except UnicodeDecodeError as e:
+                    #text = f.read().encode("ascii", errors="replace").decode()
+                    print(self.file_path)
+                    raise e
+
+                doc = self.nlp(text)
                 self._spacy_doc = doc
                 #self.sentences = [str(s) for s in doc]
                 self.sentences = [str(s) for s in doc.sents]
@@ -127,7 +135,8 @@ class Document:
                 self.summary_embedding = doc.vector
                 self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
                 self.embeddings_loaded = True
-                
+
+            # This is inefficient. to do: call the internal _save methods
             with summary_save_path.open("wb") as f:
                 pickle.dump(self.summary_embedding, f)
         else:
@@ -179,7 +188,8 @@ class Document:
         distances, indices = search_index(self.sentence_index, query_embedding, k)
 
         results = []
-        for dist, idx in zip(distances.ravel(), indices.ravel()):
+        #for dist, idx in zip(distances.ravel(), indices.ravel()):
+        for dist, idx in zip(distances, indices):
             idx = int(idx)
             results.append((dist, self.sentences[idx]))
 
