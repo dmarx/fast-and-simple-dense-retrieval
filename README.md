@@ -1,6 +1,8 @@
 # FASDR: Fast and Simple Dense Retrieval
 
-FASDR is a lightweight library for fast and efficient retrieval of using sentence embeddings. It is designed to be easy to use and integrate into your projects, especially applications such as document search and information retrieval on small corpora, such as retrieval-augmented prompting of FOSS documentation. FASDR is built on top of spaCy, Sentence-Transformers, and Scipy.
+FASDR is a simple and lightweight library for fast and efficient document retrieval. It is designed to be easy to setup and use, built on top of popular, trusted components (`scipy`, `spacy`, `transformers`) to ensure it can be seamlessly integrated into existing projects and "just work". It's especially well suited for small-to-medium corpora, such as retrieval-augmented prompting of FOSS documentation. FASDR is built on top of spaCy, Sentence-Transformers, and Scipy.
+
+FASDR is a fast and simple library for performing dense retrieval of documents. Its easy-to-use API and minimal setup make it a great choice for a variety of text search and analysis tasks.
 
 ### Features
 
@@ -23,21 +25,41 @@ Then, simply download or clone the FASDR library to your project folder.
 
 ### Indexing documents
 
-```python
-from FASDR import DocumentIndex
+### Quick Start
 
-doc_index = DocumentIndex("path/to/your/documents")
-```
-
-### Searching for documents
+To get started with FASDR, you can create a `DocumentIndex` object by passing in the root directory containing the documents you want to index:
 
 ```python
-query = "What is the meaning of life?"
-doc_results = doc_index.search_documents(query, k=3)
+from fasdr import DocumentIndex
+
+index = DocumentIndex("/path/to/documents")
 ```
 
-### Searching for sentences
+Once you have created the DocumentIndex object, you can search for documents or sentences using the search_documents and search_sentences methods:
 
 ```python
-sentence_results = doc_index.search_sentences(query, k=3)
+# Find the top five documents relevant to the query "climate change"
+results = index.search_documents("climate change", k=5)
+
+# Find the top five sentences relevant to the query "climate change"
+results = index.search_sentences("climate change", k=5)
 ```
+
+You can customize the behavior of the DocumentIndex object by specifying options such as the model name and the file extensions to include in the index:
+
+```python
+index = DocumentIndex(
+    "/path/to/documents",
+    model_name="all-MiniLM-L6-v2",
+    extensions=[".txt", ".md", ".pdf"]
+)
+```
+
+## Design
+
+FASDR is designed to be fast and simple, with a focus on ease of use and minimal setup. It uses FAISS for similarity search, which is a highly optimized library for dense vector search, and SpaCy with the Sentence-BERT component for embedding text. The library is built around two main classes:
+
+* Document: Represents a single document and its embeddings.  
+* DocumentIndex: Represents an index of documents and their embeddings.  
+
+`Document` objects are created by passing in the path to the document file, and can be used to search for similar sentences within the document. `DocumentIndex` objects are created by passing in the root directory containing the documents to index, and can be used to search for similar documents or sentences across all the indexed documents.
