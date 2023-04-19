@@ -171,7 +171,8 @@ class Document:
             with self.file_path.open('r') as f:
                 doc = self.nlp(f.read())
                 self._spacy_doc = doc
-                self.sentences = [str(s) for s in doc]
+                #self.sentences = [str(s) for s in doc]
+                self.sentences = [str(s) for s in doc.sents]
                 self.sentence_embeddings = [s.vector for s in doc.sents]
                 self.summary_embedding = doc.vector
                 self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
@@ -205,7 +206,7 @@ class Document:
             data = pickle.load(file)
             self.sentences = data["sentences"]
             self.sentence_embeddings = data["sentence_embeddings"]
-            self.sentence_index = create_faiss_index(np.array(self.sentence_embeddings))
+            self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
 
     def _construct(self):
         with self.file_path.open("r", encoding="utf-8") as file:
@@ -215,7 +216,7 @@ class Document:
         self.sentences = [str(sent) for sent in doc.sents]
         self.sentence_embeddings = [sent.vector for sent in doc.sents]
         self.summary_embedding = np.mean(self.sentence_embeddings, axis=0)
-        self.sentence_index = create_faiss_index(np.array(self.sentence_embeddings))
+        self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
 
     def search_sentences(self, query_embedding: np.ndarray, k: int = 1) -> List[Tuple[float, str]]:
         # ensure query is a 2d array
@@ -226,9 +227,14 @@ class Document:
             self.embeddings_loaded = True
 
         distances, indices = search_index(self.sentence_index, query_embedding, k)
+        #print("Distances shape:", distances.shape)
+        #print("Indices shape:", indices.shape)
 
         results = []
-        for dist, idx in zip(distances[0], indices[0]):
+        #for dist, idx in zip(distances[0], indices[0]):
+        #for dist, idx in zip(distances, indices):
+        for dist, idx in zip(distances.ravel(), indices.ravel()):
+            idx = int(idx)
             results.append((dist, self.sentences[idx]))
 
         return results
@@ -350,9 +356,12 @@ class DocumentIndex:
     def search_documents(self, query: str, k: int = 1) -> List[Tuple[float, Path]]:
         query_embedding = self.nlp(query).vector
         distances, indices = search_index(self.summary_index, np.array([query_embedding]), k)
+        print("Distances shape:", distances.shape)
+        print("Indices shape:", indices.shape)
 
         results = []
-        for dist, idx in zip(distances[0], indices[0]):
+        #for dist, idx in zip(distances[0], indices[0]):
+        for dist, idx in zip(distances, indices):
             results.append((dist, self.documents[idx].file_path))
 
         return results
