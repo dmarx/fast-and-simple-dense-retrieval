@@ -3,7 +3,8 @@ import spacy
 from pathlib import Path
 from typing import List, Tuple, Union, Optional
 import numpy as np
-import faiss
+#import faiss
+from scipy.spatial import KDTree
 #from spacy_sentence_bert import SentenceTransformer
 from spacy.language import Language
 import fnmatch
@@ -12,37 +13,63 @@ import fnmatch
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 
 
-def create_faiss_index(data: np.ndarray) -> faiss.IndexFlatL2:
+# def create_faiss_index(data: np.ndarray) -> faiss.IndexFlatL2:
+#     """
+#     Create a FAISS index for the given data.
+
+#     Args:
+#         data (np.ndarray): A 2D array containing the embeddings.
+
+#     Returns:
+#         faiss.IndexFlatL2: A FAISS index.
+#     """
+#     try:
+#         index = faiss.IndexFlatL2(data.shape[1])
+#     except IndexError:
+#         index = faiss.IndexFlatL2(len(data))
+#         data = data[:,None]
+#     index.add(data)
+#     return index
+
+# def update_faiss_index(index: faiss.IndexFlatL2, new_data: np.ndarray) -> faiss.IndexFlatL2:
+#     """
+#     Update an existing FAISS index with new data.
+
+#     Args:
+#         index (faiss.IndexFlatL2): An existing FAISS index.
+#         new_data (np.ndarray): A 2D array containing the new embeddings to add to the index.
+
+#     Returns:
+#         faiss.IndexFlatL2: The updated FAISS index.
+#     """
+#     index.add(new_data)
+#     return index
+
+def create_kdtree(data: np.ndarray) -> KDTree:
     """
-    Create a FAISS index for the given data.
+    Create a KDTree for the given data.
 
     Args:
         data (np.ndarray): A 2D array containing the embeddings.
 
     Returns:
-        faiss.IndexFlatL2: A FAISS index.
+        KDTree: A KDTree index.
     """
-    try:
-        index = faiss.IndexFlatL2(data.shape[1])
-    except IndexError:
-        index = faiss.IndexFlatL2(len(data))
-        data = data[:,None]
-    index.add(data)
-    return index
+    return KDTree(data)
 
-def update_faiss_index(index: faiss.IndexFlatL2, new_data: np.ndarray) -> faiss.IndexFlatL2:
+def update_kdtree(tree: KDTree, new_data: np.ndarray) -> KDTree:
     """
-    Update an existing FAISS index with new data.
+    Update an existing KDTree index with new data.
 
     Args:
-        index (faiss.IndexFlatL2): An existing FAISS index.
+        tree (KDTree): An existing KDTree index.
         new_data (np.ndarray): A 2D array containing the new embeddings to add to the index.
 
     Returns:
-        faiss.IndexFlatL2: The updated FAISS index.
+        KDTree: The updated KDTree index.
     """
-    index.add(new_data)
-    return index
+    combined_data = np.concatenate((tree.data, new_data))
+    return create_kdtree(combined_data)
 
 def create_nlp_pipeline(model_name: str = DEFAULT_MODEL_NAME) -> Language:
     """
@@ -59,20 +86,37 @@ def create_nlp_pipeline(model_name: str = DEFAULT_MODEL_NAME) -> Language:
     nlp.add_pipe("sentence_bert", config={"model_name": model_name})
     return nlp
 
-def search_index(index: faiss.IndexFlatL2, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+# def search_index(index: faiss.IndexFlatL2, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+#     """
+#     Search the index for the nearest neighbors of the given query.
+
+#     Args:
+#         index (faiss.IndexFlatL2): A FAISS index.
+#         query (np.ndarray): A 2D array containing the query embeddings.
+#         k (int): The number of nearest neighbors to return.
+
+#     Returns:
+#         Tuple[np.ndarray, np.ndarray]: The distances and indices of the nearest neighbors.
+#     """
+#     distances, indices = index.search(query, k)
+#     return distances, indices
+
+#def search_kdtree(tree: KDTree, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+def search_index(index: KDTree, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
     """
     Search the index for the nearest neighbors of the given query.
 
     Args:
-        index (faiss.IndexFlatL2): A FAISS index.
+        index (KDTree): A KDTree index.
         query (np.ndarray): A 2D array containing the query embeddings.
         k (int): The number of nearest neighbors to return.
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: The distances and indices of the nearest neighbors.
     """
-    distances, indices = index.search(query, k)
+    distances, indices = index.query(query, k)
     return distances, indices
+
 
 class Document:
     """
@@ -97,7 +141,6 @@ class Document:
         force_reindex: bool = False,
     ):
         self.file_path = Path(file_path)
-        #self.last_modified = self.file_path.stat().st_mtime
         self.model_name = model_name
         self.nlp = nlp
 
@@ -116,19 +159,6 @@ class Document:
 
         self._load_or_construct_summary_embedding(force_reindex=force_reindex)
 
-#     def _load_or_construct_summary_embedding(self, force_reindex: bool=False):
-#         base_name = self.file_path.stem
-#         summary_save_path = self.file_path.with_name(f"{base_name}_summary_embedding.pkl")
-#         out_of_date = self.file_path.stat().st_mtime > summary_save_path.stat().st_mtime
-        
-#         if any([out_of_date, force_reindex, not summary_save_path.exists()]):
-#             self._construct()
-#             self._save_summary_embedding(summary_save_path)
-#             self._save_embeddings()
-#         else:
-#             with summary_save_path.open("rb") as file:
-#                 self.summary_embedding = pickle.load(file)
-
     def _load_or_construct_summary_embedding(self, force_reindex: bool = False):
         summary_save_path = self.file_path.with_stem(self.file_path.stem + "_summary_embedding")
             
@@ -138,14 +168,13 @@ class Document:
             out_of_date = True
 
         if out_of_date or force_reindex:
-            #self.summary_embedding = self._construct_summary_embedding()
             with self.file_path.open('r') as f:
                 doc = self.nlp(f.read())
                 self._spacy_doc = doc
                 self.sentences = [str(s) for s in doc]
                 self.sentence_embeddings = [s.vector for s in doc.sents]
                 self.summary_embedding = doc.vector
-                self.sentence_index = create_faiss_index(np.array(self.sentence_embeddings))
+                self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
                 self.embeddings_loaded = True
                 
             with summary_save_path.open("wb") as f:
@@ -197,7 +226,7 @@ class Document:
             self.embeddings_loaded = True
 
         distances, indices = search_index(self.sentence_index, query_embedding, k)
-        #results = [(distances[0][i], self.sentences[indices[0][i]]) for i in range(len(indices[0]))]
+
         results = []
         for dist, idx in zip(distances[0], indices[0]):
             results.append((dist, self.sentences[idx]))
@@ -253,12 +282,6 @@ class DocumentIndex:
             self.nlp = nlp
             self.model_name = self.nlp.get_pipe("sentence_bert").model_name
 
-        
-        #self.summary_index = create_faiss_index(np.empty((0, self.nlp.get_pipe("sentence_bert").model.vector_size)))
-        #self.summary_index = create_faiss_index(np.empty((0, self.nlp.get_pipe("sentence_bert").vector_size)))
-#         dummy_doc = self.nlp("a")
-#         embedding_dim = dummy_doc.vector.shape[0]
-#         self.summary_index = create_faiss_index(np.empty((0, embedding_dim)))
         self.summary_index = None # populated by .load() or ._construct_from_root_directory()
             
         self.documents = []
@@ -302,13 +325,10 @@ class DocumentIndex:
         # Build summary index with new embeddings
         dummy_doc = self.nlp("a")
         embedding_dim = dummy_doc.vector.shape[0]
-        self.summary_index = create_faiss_index(np.empty((0, embedding_dim)))
+        self.summary_index = create_kdtree(np.empty((0, embedding_dim)))
 
         summary_embeddings = np.array([doc.summary_embedding for doc in self.documents])
-        self.summary_index = update_faiss_index(self.summary_index, summary_embeddings)
-
-
-
+        self.summary_index = update_kdtree(self.summary_index, summary_embeddings)
 
     def save(self):
         data = {

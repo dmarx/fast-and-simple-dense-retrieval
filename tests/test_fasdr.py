@@ -1,53 +1,59 @@
-import numpy as np
 import pytest
-from fasdr import FASDR
+import numpy as np
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import scipy
 
-@pytest.fixture
-def sample_embeddings():
-    return [
-        (np.random.rand(300), "This is a sample sentence."),
-        (np.random.rand(300), "Another example sentence."),
-        (np.random.rand(300), "Yet another sentence."),
-    ]
+from fasdr import (
+    #create_kdtree_index,
+    create_kdtree,
+    search_index,
+    create_nlp_pipeline,
+    Document,
+    DocumentIndex,
+)
 
-def test_add_item(sample_embeddings):
-    fasdr = FASDR(dimensions=300)
-    for embedding, text in sample_embeddings:
-        fasdr.add_item(embedding, text)
-    assert len(fasdr._items) == len(sample_embeddings)
+# Dummy sentence embeddings
+sentences = ["This is a test.", "Another test sentence.", "The third test sentence."]
+embeddings = np.random.rand(3, 768)
 
-def test_build(sample_embeddings):
-    fasdr = FASDR(dimensions=300)
-    for embedding, text in sample_embeddings:
-        fasdr.add_item(embedding, text)
-    fasdr.build()
-    assert fasdr._index is not None
+# Temporary directory for storing test files
+temp_dir = TemporaryDirectory()
+doc_path = Path(temp_dir.name) / "test.txt"
+doc_path.write_text("\n".join(sentences))
 
-def test_query(sample_embeddings):
-    fasdr = FASDR(dimensions=300)
-    for embedding, text in sample_embeddings:
-        fasdr.add_item(embedding, text)
-    fasdr.build()
+def test_create_kdtree_index():
+    index = create_kdtree(embeddings)
+    assert isinstance(index, scipy.spatial.KDTree)
 
-    query_embedding = np.random.rand(300)
-    k = 2
-    results = fasdr.query(query_embedding, k)
-    assert len(results) == k
+def test_search_index():
+    index = create_kdtree(embeddings)
+    query = np.random.rand(1, 768)
+    distances, indices = search_index(index, query, k=2)
+    assert distances.shape == (1, 2)
+    assert indices.shape == (1, 2)
 
-def test_save_and_load(tmpdir, sample_embeddings):
-    fasdr = FASDR(dimensions=300)
-    for embedding, text in sample_embeddings:
-        fasdr.add_item(embedding, text)
-    fasdr.build()
+def test_create_nlp_pipeline():
+    nlp = create_nlp_pipeline()
+    assert "sentencizer" in nlp.pipe_names
+    assert "sentence_bert" in nlp.pipe_names
 
-    file_path = tmpdir.join("fasdr_index.bin")
-    fasdr.save(file_path)
+def test_document():
+    doc = Document(doc_path)
+    assert len(doc.sentences) == 3
+    query = np.random.rand(1, 768)
+    results = doc.search_sentences(query, k=2)
+    assert len(results) == 2
 
-    loaded_fasdr = FASDR(dimensions=300)
-    loaded_fasdr.load(file_path)
+def test_document_index():
+    index = DocumentIndex(temp_dir.name)
+    assert len(index.documents) == 1
+    query = "test query"
+    doc_results = index.search_documents(query, k=1)
+    assert len(doc_results) == 1
+    sentence_results = index.search_sentences(query, k=1)
+    assert len(sentence_results) == 1
+    assert len(sentence_results[0]) == 3
+    assert len(sentence_results[0][-1]) == 1
 
-    query_embedding = np.random.rand(300)
-    k = 2
-    original_results = fasdr.query(query_embedding, k)
-    loaded_results = loaded_fasdr.query(query_embedding, k)
-    assert original_results == loaded_results
+temp_dir.cleanup()

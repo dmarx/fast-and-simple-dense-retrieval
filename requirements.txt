@@ -1,4 +1,5 @@
 numpy
-faiss-cpu
+#faiss-cpu
 spacy
 sentence-transformers
+scipy

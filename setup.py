@@ -11,9 +11,10 @@ setup(
     url='https://github.com/dmarx/fasdr',
     packages=['fasdr'],
     install_requires=[
+        'numpy',
         'spacy',
-        'faiss',
-        'sentence_transformers'
+        'sentence_transformers',
+        'scipy',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
