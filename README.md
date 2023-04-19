@@ -1,5 +1,7 @@
 # FASDR: Fast and Simple Dense Retrieval
 
+🚧 WORK IN PROGRESS 🚧
+
 FASDR is a simple and lightweight library for fast and efficient document retrieval. It is designed to be easy to setup and use, built on top of popular, trusted components (`scipy`, `spacy`, `transformers`) to ensure it can be seamlessly integrated into existing projects and "just work". It's especially well suited for small-to-medium corpora, such as retrieval-augmented prompting of FOSS documentation.
 
 ### Features
