@@ -110,10 +110,6 @@ class Document:
 
         self.embeddings_loaded = False
         self._construct()
-            
-    # def _save_summary_embedding(self, save_path: Path):
-    #     with save_path.open("wb") as file:
-    #         pickle.dump(self.summary_embedding, file)
 
     def save_embeddings(self):
         """
@@ -164,7 +160,6 @@ class Document:
         query_embedding = query_embedding.reshape(1, -1)
 
         if not self.embeddings_loaded:
-            #self._load_all_embeddings()
             self._construct()
             self.embeddings_loaded = True
 
@@ -270,22 +265,15 @@ class DocumentIndex:
                         ignored_patterns=self.ignored_patterns,
                         force_reindex=force_reindex,
                     )
-                    #self.documents.extend(subdir_index.documents)
                     self.documents.update(subdir_index.documents)
                 except EmptyDocument:
                     continue
-
-        # Build summary index with new embeddings
-        #dummy_doc = self.nlp("a")
-        #embedding_dim = dummy_doc.vector.shape[0]
-        #self.summary_index = create_kdtree(np.empty((0, embedding_dim)))
 
         if len(self.documents) > 0:
             summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
             self.summary_index = create_kdtree(summary_embeddings)
         else:
             raise EmptyDocument
-        #self.summary_index = update_kdtree(self.summary_index, summary_embeddings)
 
     def save(self):
         data = {
@@ -324,8 +312,6 @@ class DocumentIndex:
         if query_embedding is None:
             query_embedding = self.nlp(query).vector
         distances, indices = search_index(self.summary_index, np.array([query_embedding]), k)
-        print("Distances shape:", distances.shape)
-        print("Indices shape:", indices.shape)
 
         results = []
         for dist, idx in zip(distances, indices):
@@ -380,7 +366,6 @@ class DocumentIndex:
             query_embedding = self.nlp(query).vector
 
         if n_docs < len(self.documents):
-            #doc_results = self.search_documents(query, n_docs)
             doc_results = self.search_documents(query_embedding=query_embedding, k=n_docs)
             doc_subset = [self.documents[file_path] for _, file_path in doc_results]
         else:
@@ -430,8 +415,6 @@ def build_targeted_index(docs: List[Document]):
       - KDTree: The KD-Tree index built from the sentence embeddings.
     """
     assert len(docs) >0
-    #summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
-    #summary_index = create_kdtree(summary_embeddings)
     sentences = []
     sentence_embeddings = []
     file_paths = []
