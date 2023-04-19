@@ -8,7 +8,7 @@ setup(
     description='Simple dense retrieval using SciPy, spaCy, and Sentence-Transformers',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/dmarx/fasdr',
+    url='https://github.com/dmarx/fast-and-simple-dense-retrieval/',
     packages=['fasdr'],
     install_requires=[
         'numpy',
