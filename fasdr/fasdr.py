@@ -320,7 +320,9 @@ class DocumentIndex:
 
         results = []
         for dist, idx in zip(distances, indices):
-            results.append((dist, list(self.documents.values())[idx].file_path))
+            #results.append((dist, list(self.documents.values())[idx].file_path))
+            document_key = list(self.documents.keys())[idx]
+            results.append((dist, document_key))
 
         return results
 
