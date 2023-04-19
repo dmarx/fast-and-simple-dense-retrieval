@@ -16,6 +16,7 @@ setup(
         'sentence_transformers',
         'scipy',
         'spacy-sentence-bert',
+        'rich',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

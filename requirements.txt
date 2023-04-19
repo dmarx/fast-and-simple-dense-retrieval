@@ -1,5 +1,5 @@
 numpy
-#faiss-cpu
+rich
 spacy
 sentence-transformers
 scipy
