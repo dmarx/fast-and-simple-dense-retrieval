@@ -3,47 +3,13 @@ import spacy
 from pathlib import Path
 from typing import List, Tuple, Union, Optional
 import numpy as np
-#import faiss
 from scipy.spatial import KDTree
-#from spacy_sentence_bert import SentenceTransformer
 from spacy.language import Language
 import fnmatch
 
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 
-
-# def create_faiss_index(data: np.ndarray) -> faiss.IndexFlatL2:
-#     """
-#     Create a FAISS index for the given data.
-
-#     Args:
-#         data (np.ndarray): A 2D array containing the embeddings.
-
-#     Returns:
-#         faiss.IndexFlatL2: A FAISS index.
-#     """
-#     try:
-#         index = faiss.IndexFlatL2(data.shape[1])
-#     except IndexError:
-#         index = faiss.IndexFlatL2(len(data))
-#         data = data[:,None]
-#     index.add(data)
-#     return index
-
-# def update_faiss_index(index: faiss.IndexFlatL2, new_data: np.ndarray) -> faiss.IndexFlatL2:
-#     """
-#     Update an existing FAISS index with new data.
-
-#     Args:
-#         index (faiss.IndexFlatL2): An existing FAISS index.
-#         new_data (np.ndarray): A 2D array containing the new embeddings to add to the index.
-
-#     Returns:
-#         faiss.IndexFlatL2: The updated FAISS index.
-#     """
-#     index.add(new_data)
-#     return index
 
 def create_kdtree(data: np.ndarray) -> KDTree:
     """
@@ -86,22 +52,6 @@ def create_nlp_pipeline(model_name: str = DEFAULT_MODEL_NAME) -> Language:
     nlp.add_pipe("sentence_bert", config={"model_name": model_name})
     return nlp
 
-# def search_index(index: faiss.IndexFlatL2, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
-#     """
-#     Search the index for the nearest neighbors of the given query.
-
-#     Args:
-#         index (faiss.IndexFlatL2): A FAISS index.
-#         query (np.ndarray): A 2D array containing the query embeddings.
-#         k (int): The number of nearest neighbors to return.
-
-#     Returns:
-#         Tuple[np.ndarray, np.ndarray]: The distances and indices of the nearest neighbors.
-#     """
-#     distances, indices = index.search(query, k)
-#     return distances, indices
-
-#def search_kdtree(tree: KDTree, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
 def search_index(index: KDTree, query: np.ndarray, k: int = 1) -> Tuple[np.ndarray, np.ndarray]:
     """
     Search the index for the nearest neighbors of the given query.
@@ -227,12 +177,8 @@ class Document:
             self.embeddings_loaded = True
 
         distances, indices = search_index(self.sentence_index, query_embedding, k)
-        #print("Distances shape:", distances.shape)
-        #print("Indices shape:", indices.shape)
 
         results = []
-        #for dist, idx in zip(distances[0], indices[0]):
-        #for dist, idx in zip(distances, indices):
         for dist, idx in zip(distances.ravel(), indices.ravel()):
             idx = int(idx)
             results.append((dist, self.sentences[idx]))
@@ -360,7 +306,6 @@ class DocumentIndex:
         print("Indices shape:", indices.shape)
 
         results = []
-        #for dist, idx in zip(distances[0], indices[0]):
         for dist, idx in zip(distances, indices):
             results.append((dist, self.documents[idx].file_path))
 
