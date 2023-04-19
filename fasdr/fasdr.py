@@ -220,7 +220,7 @@ class DocumentIndex:
         root_directory: Union[str, Path],
         model_name: str = DEFAULT_MODEL_NAME,
         nlp: Optional[spacy.language.Language] = None,
-        whitelisted_extensions: Optional[List[str]] = None,
+        extensions: Optional[List[str]] = None,
         ignored_patterns: Optional[List[str]] = None,
         force_reindex: bool = False,
     ):
@@ -230,7 +230,7 @@ class DocumentIndex:
         self.save_location.mkdir(parents=True, exist_ok=True)
         self.index_save_path = self.save_location / "index.pkl"
         
-        self.whitelisted_extensions = whitelisted_extensions or ['.py', '.md', '.txt', '.yaml', '.yml', '.toml']
+        self.extensions = extensions or ['.py', '.md', '.txt', '.yaml', '.yml', '.toml']
 
         if ignored_patterns is None:
             self.ignored_patterns = [".*"]  # Ignore folders starting with a period by default
@@ -260,7 +260,7 @@ class DocumentIndex:
         if directory is None:
             directory = self.root_directory
             
-        for ext in self.whitelisted_extensions:
+        for ext in self.extensions:
             for file_path in directory.glob(f"*{ext}"):
                 existing_document = self.documents.get(file_path)
 
@@ -280,7 +280,7 @@ class DocumentIndex:
                 subdir_index = DocumentIndex(
                     root_directory=subdir,
                     nlp=self.nlp,
-                    whitelisted_extensions=self.whitelisted_extensions,
+                    extensions=self.extensions,
                     ignored_patterns=self.ignored_patterns,
                     force_reindex=force_reindex,
                 )
