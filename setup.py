@@ -2,10 +2,10 @@ from setuptools import setup
 
 setup(
     name='fasdr',
-    version='0.1',
+    version='0.0.1',
     author='David Marx',
     author_email='david.marx84@gmail.com',
-    description='A library for dense retrieval using FAISS and Sentence-BERT',
+    description='Simple dense retrieval using SciPy, spaCy, and Sentence-Transformers',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/dmarx/fasdr',
@@ -15,7 +15,6 @@ setup(
         'spacy',
         'sentence_transformers',
         'scipy',
-        #'en_core_web_sm',
         'spacy-sentence-bert',
     ],
     classifiers=[
