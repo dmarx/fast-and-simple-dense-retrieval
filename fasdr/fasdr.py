@@ -89,7 +89,6 @@ class Document:
         file_path: Union[str, Path],
         nlp: Optional[spacy.Language] = None,
         model_name: str = DEFAULT_MODEL_NAME,
-        #force_reindex: bool = False,
     ):
         self.file_path = Path(file_path)
         self.model_name = model_name
@@ -107,50 +106,13 @@ class Document:
         self.sentence_index = None
 
         self.embeddings_loaded = False
-
-        #self._load_or_construct_summary_embedding(force_reindex=force_reindex)
         self._construct()
-
-    # def _load_or_construct_summary_embedding(self, force_reindex: bool = False):
-        #summary_save_path = self.file_path.with_stem(self.file_path.stem + "_summary_embedding")
-        # summary_save_path = self.file_path.with_name(self.file_path.stem + "_summary_embedding.pkl")
-            
-        # if self.file_path.exists() and summary_save_path.exists():
-        #     out_of_date = self.file_path.stat().st_mtime > summary_save_path.stat().st_mtime
-        # else:
-        #     out_of_date = True
-
-        # if out_of_date or force_reindex:
-        #     with self.file_path.open('r') as f:
-        #         try:
-        #             text = f.read()
-        #         except UnicodeDecodeError as e:
-        #             #text = f.read().encode("ascii", errors="replace").decode()
-        #             print(self.file_path)
-        #             raise e
-
-        #         doc = self.nlp(text)
-        #         self._spacy_doc = doc
-        #         #self.sentences = [str(s) for s in doc]
-        #         self.sentences = [str(s) for s in doc.sents]
-        #         self.sentence_embeddings = [s.vector for s in doc.sents]
-        #         self.summary_embedding = doc.vector
-        #         self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
-        #         self.embeddings_loaded = True
-
-        #     # This is inefficient. to do: call the internal _save methods
-        #     with summary_save_path.open("wb") as f:
-        #         pickle.dump(self.summary_embedding, f)
-        # else:
-        #     with open(summary_save_path, "rb") as f:
-        #         self.summary_embedding = pickle.load(f)
-            
             
     def _save_summary_embedding(self, save_path: Path):
         with save_path.open("wb") as file:
             pickle.dump(self.summary_embedding, file)
 
-    def _save_embeddings(self):
+    def save_embeddings(self):
         base_name = self.file_path.stem
         save_path = self.file_path.with_name(f"{base_name}_embeddings.pkl")
 
@@ -162,7 +124,7 @@ class Document:
         with save_path.open("wb") as file:
             pickle.dump(data, file)
 
-    def _load_all_embeddings(self, save_path: Path):
+    def load_embeddings(self, save_path: Path):
         with save_path.open("rb") as file:
             data = pickle.load(file)
             self.sentences = data["sentences"]
@@ -191,7 +153,6 @@ class Document:
         distances, indices = search_index(self.sentence_index, query_embedding, k)
 
         results = []
-        #for dist, idx in zip(distances.ravel(), indices.ravel()):
         for dist, idx in zip(distances, indices):
             idx = int(idx)
             results.append((dist, self.sentences[idx]))
@@ -249,7 +210,6 @@ class DocumentIndex:
 
         self.summary_index = None # populated by .load() or ._construct_from_root_directory()
             
-        #self.documents = []
         self.documents = OrderedDict()
 
         if not force_reindex and self.root_directory.joinpath(".embeddings", "index.pkl").exists():
@@ -271,7 +231,6 @@ class DocumentIndex:
                     (not force_reindex):
                     continue
 
-                #document = Document(file_path, nlp=self.nlp, force_reindex=force_reindex)
                 document = Document(file_path, nlp=self.nlp)
                 self.documents[file_path] = document
 
@@ -325,7 +284,6 @@ class DocumentIndex:
 
         results = []
         for dist, idx in zip(distances, indices):
-            #results.append((dist, list(self.documents.values())[idx].file_path))
             document_key = list(self.documents.keys())[idx]
             results.append((dist, document_key))
 
@@ -338,7 +296,6 @@ class DocumentIndex:
 
         results = []
         for dist, file_path in doc_results:
-            #document = next(doc for doc in self.documents if doc.file_path == file_path)
             document = self.documents[file_path]
             sentence_results = document.search_sentences(np.array([query_embedding]), k)
             results.append((dist, file_path, sentence_results))
