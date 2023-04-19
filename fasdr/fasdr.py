@@ -37,6 +37,7 @@ def update_kdtree(tree: KDTree, new_data: np.ndarray) -> KDTree:
     Returns:
         KDTree: The updated KDTree index.
     """
+    #new_data = new_data.reshape(1, -1)
     combined_data = np.concatenate((tree.data, new_data))
     return create_kdtree(combined_data)
 
@@ -240,10 +241,9 @@ class DocumentIndex:
 
                 try:
                     document = Document(file_path, nlp=self.nlp)
+                    self.documents[file_path] = document
                 except EmptyDocument:
                     continue
-
-                self.documents[file_path] = document
 
         # Recursive search for text files in subdirectories
         for subdir in directory.iterdir():
@@ -252,23 +252,30 @@ class DocumentIndex:
                 and subdir != self.save_location
                 and not any(fnmatch.fnmatch(subdir.name, pattern) for pattern in self.ignored_patterns)
             ):
-                subdir_index = DocumentIndex(
-                    root_directory=subdir,
-                    nlp=self.nlp,
-                    extensions=self.extensions,
-                    ignored_patterns=self.ignored_patterns,
-                    force_reindex=force_reindex,
-                )
-                #self.documents.extend(subdir_index.documents)
-                self.documents.update(subdir_index.documents)
+                try:
+                    subdir_index = DocumentIndex(
+                        root_directory=subdir,
+                        nlp=self.nlp,
+                        extensions=self.extensions,
+                        ignored_patterns=self.ignored_patterns,
+                        force_reindex=force_reindex,
+                    )
+                    #self.documents.extend(subdir_index.documents)
+                    self.documents.update(subdir_index.documents)
+                except EmptyDocument:
+                    continue
 
         # Build summary index with new embeddings
-        dummy_doc = self.nlp("a")
-        embedding_dim = dummy_doc.vector.shape[0]
-        self.summary_index = create_kdtree(np.empty((0, embedding_dim)))
+        #dummy_doc = self.nlp("a")
+        #embedding_dim = dummy_doc.vector.shape[0]
+        #self.summary_index = create_kdtree(np.empty((0, embedding_dim)))
 
-        summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
-        self.summary_index = update_kdtree(self.summary_index, summary_embeddings)
+        if len(self.documents) > 0:
+            summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
+            self.summary_index = create_kdtree(summary_embeddings)
+        else:
+            raise EmptyDocument
+        #self.summary_index = update_kdtree(self.summary_index, summary_embeddings)
 
     def save(self):
         data = {
