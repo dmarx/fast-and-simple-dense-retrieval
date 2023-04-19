@@ -1,0 +1,16 @@
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  generate_index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate Fasdr index and commit .embeddings folder
+        uses: dmarx/fasdr-action@v1
+        #with:
+        #  path-to-index: /path/to/index
