@@ -1,69 +1,45 @@
-# FASDR: Fast And Simple Dense Retrieval
+# FASDR: Fast and Simple Dense Retrieval
 
-FASDR is a lightweight and efficient library for fast and simple dense retrieval. It is designed to facilitate searching and retrieval of dense vector representations while keeping the storage and search overhead minimal. FASDR is particularly well-suited for projects that require fast, efficient searching of embeddings and their corresponding textual data.
+FASDR is a library for fast and efficient dense retrieval of text from documents, designed for applications such as document search and information retrieval. It uses SpaCy, Sentence-BERT, and FAISS to perform efficient vector-based similarity search for documents and sentences.
 
-## Motivation
+## Basic Functionality and Features
 
-The motivation behind FASDR is to provide a solution for projects that require efficient storage and retrieval of embeddings alongside their textual representations. While existing solutions like FAISS and Annoy are powerful and versatile, they can be overkill for smaller-scale projects or use cases where simplicity is a priority. FASDR aims to address these needs by providing a streamlined and easy-to-use interface for working with embeddings and their corresponding text data.
+The library provides two main classes: Document and DocumentIndex.
+
+### Document
+
+The `Document` class represents a document and its embeddings. It allows users to search for similar sentences within the document using query embeddings.
+
+Example usage:
+
+```python
+doc = Document("path/to/your/file.txt")
+query_embedding = np.array([0.1, 0.2, 0.3, 0.4])
+results = doc.search_sentences(query_embedding, k=3)
+```
+
+### DocumentIndex
+
+The `DocumentIndex` class represents an index of documents and their embeddings. It allows users to search for similar documents and sentences across multiple documents using a query string.
+
+Example usage:
+
+```python
+doc_index = DocumentIndex("path/to/your/documents")
+query = "What is the meaning of life?"
+doc_results = doc_index.search_documents(query, k=3)
+sentence_results = doc_index.search_sentences(query, k=3)
+```
+
+## Design Motivations
+
+FASDR aims to provide a simple, efficient, and user-friendly way to perform dense retrieval tasks on collections of documents. The library is built on top of existing powerful libraries such as SpaCy, Sentence-BERT, and FAISS to enable fast and efficient vector-based similarity search for documents and sentences.
 
 ## Use Cases
 
-FASDR is particularly well-suited for the following use cases:
+FASDR is well suited for the following use cases:
 
-1. Searching and retrieval of precomputed embeddings in small to medium-sized datasets.
-2. Efficient storage and retrieval of embeddings alongside their textual representations.
-3. Rapid prototyping and development of applications that require embedding-based search and retrieval.
-
-## Installation
-
-```bash
-pip install fasdr
-```
-
-## Basic Usage
-
-Here's a simple example demonstrating how to use FASDR for storing and retrieving embeddings alongside their textual representations:
-
-```python
-from fasdr import FASDR
-
-# Initialize FASDR with the desired dimensions for your embeddings
-fasdr = FASDR(dimensions=300)
-
-# Add embeddings and their corresponding text data
-embedding1 = [0.1, 0.2, 0.3, ...]
-text1 = "This is a sample sentence."
-fasdr.add_item(embedding1, text1)
-
-embedding2 = [0.4, 0.5, 0.6, ...]
-text2 = "Another example sentence."
-fasdr.add_item(embedding2, text2)
-
-# Build the index
-fasdr.build()
-
-# Query the index for nearest neighbors
-query_embedding = [0.15, 0.25, 0.35, ...]
-k = 2  # Number of nearest neighbors to retrieve
-results = fasdr.query(query_embedding, k)
-
-# Print the results
-for score, text in results:
-    print(f"Score: {score}, Text: {text}")
-```
-
-## Core Functionality
-
-FASDR provides the following core functionality:
-
-add_item(embedding, text): Add an embedding and its corresponding textual representation to the index.
-build(): Build the index after adding all items. This step is required before querying the index.
-query(query_embedding, k): Query the index for the k nearest neighbors of a given query_embedding.
-save(file_path): Save the FASDR index to a file for later use.
-load(file_path): Load a previously saved FASDR index from a file.
-For more details on FASDR's API, please refer to the documentation.
-
-## Contributing
-
-We welcome contributions to FASDR! Please submit issues, bug reports, or feature requests through the GitHub repository, and feel free to open pull requests for improvements or bug fixes.
-
+1. Information retrieval: Quickly search through a collection of documents to find the ones most relevant to a given query.
+1. Question-answering systems: Find the most relevant sentences in a document or a collection of documents that can help answer a given question.
+1. Document summarization: Extract the most important sentences from a document based on their similarity to a given query or summary embedding.
+1. Text clustering and classification: Use the document and sentence embeddings generated by the library to cluster and classify documents based on their semantic content.
