@@ -307,15 +307,47 @@ class DocumentIndex:
 
         return results
 
-    def search_sentences(self, query: str, k: int = 1) -> List[Tuple[float, Path, List[Tuple[float, str]]]]:
+    # def search_sentences(
+    #     self, 
+    #     query: str, 
+    #     k: int = 1
+    # ) -> List[Tuple[float, Path, List[Tuple[float, str]]]]:
+    #     doc_results = self.search_documents(query, k)
+
+    #     query_embedding = self.nlp(query).vector
+
+    #     results = []
+    #     for dist, file_path in doc_results:
+    #         document = self.documents[file_path]
+    #         sentence_results = document.search_sentences(np.array([query_embedding]), k)
+    #         results.append((dist, file_path, sentence_results))
+
+    #     return results
+
+    def search_sentences_targeted(
+        self, 
+        query: str, 
+        n_docs: int = 1,
+        n_sents: int = 1,
+    ) -> List[Tuple[float, Path, List[Tuple[float, str]]]]:
+        k = n_docs
         doc_results = self.search_documents(query, k)
 
+        # to do: shouldn't have to recompute this.
         query_embedding = self.nlp(query).vector
 
+        #k = n_sents
         results = []
         for dist, file_path in doc_results:
             document = self.documents[file_path]
+            k = min(n_sents, len(document.sentences))
             sentence_results = document.search_sentences(np.array([query_embedding]), k)
-            results.append((dist, file_path, sentence_results))
+            #results.append((dist, file_path, sentence_results))
+            results.append(dict(
+                document_fpath=file_path,
+                document=document,
+                document_score=dist,
+                sentences=sentence_results,
+            ))
 
         return results
