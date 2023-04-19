@@ -89,7 +89,7 @@ class Document:
         file_path: Union[str, Path],
         nlp: Optional[spacy.Language] = None,
         model_name: str = DEFAULT_MODEL_NAME,
-        force_reindex: bool = False,
+        #force_reindex: bool = False,
     ):
         self.file_path = Path(file_path)
         self.model_name = model_name
@@ -108,41 +108,42 @@ class Document:
 
         self.embeddings_loaded = False
 
-        self._load_or_construct_summary_embedding(force_reindex=force_reindex)
+        #self._load_or_construct_summary_embedding(force_reindex=force_reindex)
+        self._construct()
 
-    def _load_or_construct_summary_embedding(self, force_reindex: bool = False):
+    # def _load_or_construct_summary_embedding(self, force_reindex: bool = False):
         #summary_save_path = self.file_path.with_stem(self.file_path.stem + "_summary_embedding")
-        summary_save_path = self.file_path.with_name(self.file_path.stem + "_summary_embedding.pkl")
+        # summary_save_path = self.file_path.with_name(self.file_path.stem + "_summary_embedding.pkl")
             
-        if self.file_path.exists() and summary_save_path.exists():
-            out_of_date = self.file_path.stat().st_mtime > summary_save_path.stat().st_mtime
-        else:
-            out_of_date = True
+        # if self.file_path.exists() and summary_save_path.exists():
+        #     out_of_date = self.file_path.stat().st_mtime > summary_save_path.stat().st_mtime
+        # else:
+        #     out_of_date = True
 
-        if out_of_date or force_reindex:
-            with self.file_path.open('r') as f:
-                try:
-                    text = f.read()
-                except UnicodeDecodeError as e:
-                    #text = f.read().encode("ascii", errors="replace").decode()
-                    print(self.file_path)
-                    raise e
+        # if out_of_date or force_reindex:
+        #     with self.file_path.open('r') as f:
+        #         try:
+        #             text = f.read()
+        #         except UnicodeDecodeError as e:
+        #             #text = f.read().encode("ascii", errors="replace").decode()
+        #             print(self.file_path)
+        #             raise e
 
-                doc = self.nlp(text)
-                self._spacy_doc = doc
-                #self.sentences = [str(s) for s in doc]
-                self.sentences = [str(s) for s in doc.sents]
-                self.sentence_embeddings = [s.vector for s in doc.sents]
-                self.summary_embedding = doc.vector
-                self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
-                self.embeddings_loaded = True
+        #         doc = self.nlp(text)
+        #         self._spacy_doc = doc
+        #         #self.sentences = [str(s) for s in doc]
+        #         self.sentences = [str(s) for s in doc.sents]
+        #         self.sentence_embeddings = [s.vector for s in doc.sents]
+        #         self.summary_embedding = doc.vector
+        #         self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
+        #         self.embeddings_loaded = True
 
-            # This is inefficient. to do: call the internal _save methods
-            with summary_save_path.open("wb") as f:
-                pickle.dump(self.summary_embedding, f)
-        else:
-            with open(summary_save_path, "rb") as f:
-                self.summary_embedding = pickle.load(f)
+        #     # This is inefficient. to do: call the internal _save methods
+        #     with summary_save_path.open("wb") as f:
+        #         pickle.dump(self.summary_embedding, f)
+        # else:
+        #     with open(summary_save_path, "rb") as f:
+        #         self.summary_embedding = pickle.load(f)
             
             
     def _save_summary_embedding(self, save_path: Path):
@@ -175,7 +176,7 @@ class Document:
         doc = self.nlp(text)
         self.sentences = [str(sent) for sent in doc.sents]
         self.sentence_embeddings = [sent.vector for sent in doc.sents]
-        self.summary_embedding = np.mean(self.sentence_embeddings, axis=0)
+        self.summary_embedding = doc.vector #np.mean(self.sentence_embeddings, axis=0)
         self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
 
     def search_sentences(self, query_embedding: np.ndarray, k: int = 1) -> List[Tuple[float, str]]:
@@ -183,7 +184,8 @@ class Document:
         query_embedding = query_embedding.reshape(1, -1)
 
         if not self.embeddings_loaded:
-            self._load_all_embeddings()
+            #self._load_all_embeddings()
+            self._construct()
             self.embeddings_loaded = True
 
         distances, indices = search_index(self.sentence_index, query_embedding, k)
@@ -264,10 +266,13 @@ class DocumentIndex:
             for file_path in directory.glob(f"*{ext}"):
                 existing_document = self.documents.get(file_path)
 
-                if existing_document is not None and existing_document.last_modified >= file_path.stat().st_mtime:
+                if (existing_document is not None) and \
+                    (existing_document.last_modified >= file_path.stat().st_mtime) and \
+                    (not force_reindex):
                     continue
 
-                document = Document(file_path, nlp=self.nlp, force_reindex=force_reindex)
+                #document = Document(file_path, nlp=self.nlp, force_reindex=force_reindex)
+                document = Document(file_path, nlp=self.nlp)
                 self.documents[file_path] = document
 
         # Recursive search for text files in subdirectories
