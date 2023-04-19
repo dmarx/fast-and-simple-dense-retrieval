@@ -111,11 +111,14 @@ class Document:
         self.embeddings_loaded = False
         self._construct()
             
-    def _save_summary_embedding(self, save_path: Path):
-        with save_path.open("wb") as file:
-            pickle.dump(self.summary_embedding, file)
+    # def _save_summary_embedding(self, save_path: Path):
+    #     with save_path.open("wb") as file:
+    #         pickle.dump(self.summary_embedding, file)
 
     def save_embeddings(self):
+        """
+        Save the sentence embeddings and sentences of the document to a file.
+        """
         base_name = self.file_path.stem
         save_path = self.file_path.with_name(f"{base_name}_embeddings.pkl")
 
@@ -128,6 +131,12 @@ class Document:
             pickle.dump(data, file)
 
     def load_embeddings(self, save_path: Path):
+        """
+        Load the sentence embeddings and sentences of the document from the given file.
+
+        Args:
+            save_path (Path): The file path to load the embeddings and sentences from.
+        """
         with save_path.open("rb") as file:
             data = pickle.load(file)
             self.sentences = data["sentences"]
@@ -295,8 +304,25 @@ class DocumentIndex:
             self.documents = data["documents"]
             self.summary_index = data["summary_index"]
 
-    def search_documents(self, query: str, k: int = 1) -> List[Tuple[float, Path]]:
-        query_embedding = self.nlp(query).vector
+    def search_documents(
+        self,
+        query: Optional[str]=None,
+        k: int = 1,
+        query_embedding: np.ndarray = None
+    ) -> List[Tuple[float, Path]]:
+        """
+        Search for the documents containing the most similar summary embeddings to the given query.
+
+        Args:
+            query (Optional[str]): The query to search for. If a query embedding is provided, this argument will be ignored.
+            k (int): The number of most similar documents to return.
+            query_embedding (np.ndarray): An optional query embedding to use instead of a query string.
+
+        Returns:
+            List[Tuple[float, Path]]: A list of tuples containing the distances and file paths of the most similar documents.
+        """
+        if query_embedding is None:
+            query_embedding = self.nlp(query).vector
         distances, indices = search_index(self.summary_index, np.array([query_embedding]), k)
         print("Distances shape:", distances.shape)
         print("Indices shape:", indices.shape)
@@ -308,51 +334,75 @@ class DocumentIndex:
 
         return results
 
-    # def search_sentences(
-    #     self, 
-    #     query: str, 
-    #     k: int = 1
-    # ) -> List[Tuple[float, Path, List[Tuple[float, str]]]]:
-    #     doc_results = self.search_documents(query, k)
+    def search_sentences(self, query: str, k: int = 1, query_embedding: np.ndarray = None):
+        """
+        Search for the most similar sentences across all documents to the given query.
 
-    #     query_embedding = self.nlp(query).vector
+        Args:
+            query (str): The query to search for.
+            k (int): The number of most similar sentences to return.
+            query_embedding (np.ndarray): An optional query embedding to use instead of a query string.
 
-    #     results = []
-    #     for dist, file_path in doc_results:
-    #         document = self.documents[file_path]
-    #         sentence_results = document.search_sentences(np.array([query_embedding]), k)
-    #         results.append((dist, file_path, sentence_results))
-
-    #     return results
+        Returns:
+            List[Tuple[float, Path, List[Tuple[float, str]]]]: A list of tuples containing the distances, file paths, and
+            the most similar sentences for each file.
+        """
+        if query_embedding is None:
+            query_embedding = self.nlp(query).vector
+        doc_subset = list(self.documents.values())
+        return self.search_in_documents(query_embedding=query_embedding, docs=doc_subset, k=n_sents)
 
     def search_sentences_targeted(
         self, 
         query: str, 
         n_docs: int = 1,
         n_sents: int = 1,
+        query_embedding: np.ndarray = None,
     ) -> List[Tuple[float, Path, List[Tuple[float, str]]]]:
-        k = n_docs
-        doc_results = self.search_documents(query, k)
+        """
+        Search for sentences in the documents that match a query string.
 
-        # to do: shouldn't have to recompute this.
-        query_embedding = self.nlp(query).vector
+        Args:
+        - query (str): The query string to search for.
+        - n_docs (int): The number of top documents to consider.
+        - n_sents (int): The number of top sentences to return.
+        - query_embedding (np.ndarray): The precomputed query embedding, if any.
 
-        # #k = n_sents
-        # results = []
-        # for dist, file_path in doc_results:
-        #     document = self.documents[file_path]
-        #     k = min(n_sents, len(document.sentences))
-        #     sentence_results = document.search_sentences(np.array([query_embedding]), k)
-        #     #results.append((dist, file_path, sentence_results))
-        #     results.append(dict(
-        #         document_fpath=file_path,
-        #         document=document,
-        #         document_score=dist,
-        #         sentences=sentence_results,
-        #     ))
-        k = n_sents
-        doc_subset = [self.documents[file_path] for _, file_path in doc_results]
-        filtered = build_targeted_index(doc_subset)
+        Returns:
+        - List[Tuple[float, Path, List[Tuple[float, str]]]]: A list of tuples containing:
+        - float: The relevance score of the sentence to the query.
+        - Path: The path to the file where the sentence was found.
+        - List[Tuple[float, str]]: A list of tuples containing:
+            - float: The relevance score of the sentence to the query.
+            - str: The sentence text.
+        """
+        if query_embedding is None:
+            query_embedding = self.nlp(query).vector
+
+        if n_docs < len(self.documents):
+            #doc_results = self.search_documents(query, n_docs)
+            doc_results = self.search_documents(query_embedding=query_embedding, k=n_docs)
+            doc_subset = [self.documents[file_path] for _, file_path in doc_results]
+        else:
+            doc_subset = list(self.documents.values())
+        return self.search_in_documents(query_embedding=query_embedding, docs=doc_subset, k=n_sents)
+
+    def search_in_documents(self, docs: List[Document], query_embedding: Optional[np.ndarray] = None, k: int = 1):
+        """
+        Search for sentences in a set of documents that match a query embedding.
+
+        Args:
+        - docs (List[Document]): A list of documents to search in.
+        - query_embedding (Optional[np.ndarray]): The precomputed query embedding, if any.
+        - k (int): The number of top sentences to return.
+
+        Returns:
+        - List[Dict[str, Union[float, str]]]: A list of dictionaries containing:
+        - str: The path to the file where the sentence was found.
+        - str: The text of the sentence.
+        - float: The relevance score of the sentence to the query.
+        """
+        filtered = build_targeted_index(docs)
         distances, indices = search_index(filtered['index'], np.array([query_embedding]), k)
 
         results = []
@@ -368,7 +418,16 @@ class DocumentIndex:
 
 def build_targeted_index(docs: List[Document]):
     """
-    Builds an index over a subset of documents
+    Build a KD-Tree index over the sentence embeddings in a set of documents.
+
+    Args:
+    - docs (List[Document]): A list of documents to build the index from.
+
+    Returns:
+    - Dict[str, Union[List[str], KDTree]]: A dictionary containing:
+      - List[str]: The text of all sentences in the documents.
+      - List[str]: The file paths of all documents in the set, repeated for each of their sentences.
+      - KDTree: The KD-Tree index built from the sentence embeddings.
     """
     assert len(docs) >0
     #summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])

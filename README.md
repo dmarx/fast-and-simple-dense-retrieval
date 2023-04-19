@@ -47,8 +47,8 @@ Once you have created the DocumentIndex object, you can search for documents or 
 # Find the top five documents relevant to the query "climate change"
 results = index.search_documents("climate change", k=5)
 
-# Find the top five sentences relevant to the query "climate change"
-results = index.search_sentences("climate change", k=5)
+# Find the top 10 sentences after filtering on the top 5 documents
+results = index.search_sentences_targeted("climate change", n_docs=5, n_sents=10)
 ```
 
 You can customize the behavior of the DocumentIndex object by specifying options such as the model name and the file extensions to include in the index:

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='fasdr',
-    version='0.0.2',
+    version='0.0.3',
     author='David Marx',
     author_email='david.marx84@gmail.com',
     description='Simple dense retrieval using SciPy, spaCy, and Sentence-Transformers',
