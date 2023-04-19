@@ -147,6 +147,7 @@ class Document:
             raise EmptyDocument
         self.sentence_embeddings = [sent.vector for sent in doc.sents]
         self.summary_embedding = doc.vector #np.mean(self.sentence_embeddings, axis=0)
+        # to do: don't need to build document index here. make a lazy property
         self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
 
     def search_sentences(self, query_embedding: np.ndarray, k: int = 1) -> List[Tuple[float, str]]:
@@ -336,18 +337,54 @@ class DocumentIndex:
         # to do: shouldn't have to recompute this.
         query_embedding = self.nlp(query).vector
 
-        #k = n_sents
+        # #k = n_sents
+        # results = []
+        # for dist, file_path in doc_results:
+        #     document = self.documents[file_path]
+        #     k = min(n_sents, len(document.sentences))
+        #     sentence_results = document.search_sentences(np.array([query_embedding]), k)
+        #     #results.append((dist, file_path, sentence_results))
+        #     results.append(dict(
+        #         document_fpath=file_path,
+        #         document=document,
+        #         document_score=dist,
+        #         sentences=sentence_results,
+        #     ))
+        k = n_sents
+        doc_subset = [self.documents[file_path] for _, file_path in doc_results]
+        filtered = build_targeted_index(doc_subset)
+        distances, indices = search_index(filtered['index'], np.array([query_embedding]), k)
+
         results = []
-        for dist, file_path in doc_results:
-            document = self.documents[file_path]
-            k = min(n_sents, len(document.sentences))
-            sentence_results = document.search_sentences(np.array([query_embedding]), k)
-            #results.append((dist, file_path, sentence_results))
-            results.append(dict(
-                document_fpath=file_path,
-                document=document,
-                document_score=dist,
-                sentences=sentence_results,
-            ))
+        for dist, idx in zip(distances, indices):
+            idx = int(idx)
+            fpath = filtered['file_paths'][idx]
+            sent = filtered['sentences'][idx]
+            rec = {'fpath':fpath, 'text':sent, 'score':dist}
+            results.append(rec)
 
         return results
+
+
+def build_targeted_index(docs: List[Document]):
+    """
+    Builds an index over a subset of documents
+    """
+    assert len(docs) >0
+    #summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
+    #summary_index = create_kdtree(summary_embeddings)
+    sentences = []
+    sentence_embeddings = []
+    file_paths = []
+    for doc in docs:
+        assert len(doc.sentences) == len(doc.sentence_embeddings)
+        n = len(doc.sentences)
+        sentences.extend(doc.sentences)
+        sentence_embeddings.extend(doc.sentence_embeddings)
+        file_paths.extend([str(doc.file_path.absolute()) for _ in range(n)])
+    return dict(
+        sentences=sentences,
+        file_paths=file_paths,
+        index=KDTree(np.array(sentence_embeddings)),
+    )
+
