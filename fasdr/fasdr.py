@@ -6,6 +6,7 @@ import numpy as np
 from scipy.spatial import KDTree
 from spacy.language import Language
 import fnmatch
+from collections import OrderedDict
 
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
@@ -246,7 +247,8 @@ class DocumentIndex:
 
         self.summary_index = None # populated by .load() or ._construct_from_root_directory()
             
-        self.documents = []
+        #self.documents = []
+        self.documents = OrderedDict()
 
         if not force_reindex and self.root_directory.joinpath(".embeddings", "index.pkl").exists():
             self.load()
@@ -260,13 +262,13 @@ class DocumentIndex:
             
         for ext in self.whitelisted_extensions:
             for file_path in directory.glob(f"*{ext}"):
-                existing_document = next((doc for doc in self.documents if doc.file_path == file_path), None)
+                existing_document = self.documents.get(file_path)
 
                 if existing_document is not None and existing_document.last_modified >= file_path.stat().st_mtime:
                     continue
 
                 document = Document(file_path, nlp=self.nlp, force_reindex=force_reindex)
-                self.documents.append(document)
+                self.documents[file_path] = document
 
         # Recursive search for text files in subdirectories
         for subdir in directory.iterdir():
@@ -282,14 +284,15 @@ class DocumentIndex:
                     ignored_patterns=self.ignored_patterns,
                     force_reindex=force_reindex,
                 )
-                self.documents.extend(subdir_index.documents)
+                #self.documents.extend(subdir_index.documents)
+                self.documents.update(subdir_index.documents)
 
         # Build summary index with new embeddings
         dummy_doc = self.nlp("a")
         embedding_dim = dummy_doc.vector.shape[0]
         self.summary_index = create_kdtree(np.empty((0, embedding_dim)))
 
-        summary_embeddings = np.array([doc.summary_embedding for doc in self.documents])
+        summary_embeddings = np.array([doc.summary_embedding for doc in self.documents.values()])
         self.summary_index = update_kdtree(self.summary_index, summary_embeddings)
 
     def save(self):
@@ -317,7 +320,7 @@ class DocumentIndex:
 
         results = []
         for dist, idx in zip(distances, indices):
-            results.append((dist, self.documents[idx].file_path))
+            results.append((dist, list(self.documents.values())[idx].file_path))
 
         return results
 
@@ -328,7 +331,8 @@ class DocumentIndex:
 
         results = []
         for dist, file_path in doc_results:
-            document = next(doc for doc in self.documents if doc.file_path == file_path)
+            #document = next(doc for doc in self.documents if doc.file_path == file_path)
+            document = self.documents[file_path]
             sentence_results = document.search_sentences(np.array([query_embedding]), k)
             results.append((dist, file_path, sentence_results))
 
