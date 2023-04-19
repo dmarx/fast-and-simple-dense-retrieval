@@ -3,3 +3,4 @@ _venv
 *.egg-info
 *.embeddings
 *.pkl
+__pycache__
