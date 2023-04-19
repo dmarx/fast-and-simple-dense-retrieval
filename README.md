@@ -15,9 +15,8 @@ FASDR is a simple and lightweight library for fast and efficient document retrie
 
 First, install `fasdr` via pip:
 
-<!--To do: publish to PyPI-->
 ```
-pip install git+https://github.com/dmarx/fast-and-simple-dense-retrieval
+pip install fasdr
 ```
 
 Next, download sentence tokenization language model for
