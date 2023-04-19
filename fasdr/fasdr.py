@@ -11,6 +11,8 @@ from collections import OrderedDict
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 
+class EmptyDocument(ValueError):
+    pass
 
 def create_kdtree(data: np.ndarray) -> KDTree:
     """
@@ -134,9 +136,14 @@ class Document:
     def _construct(self):
         with self.file_path.open("r", encoding="utf-8") as file:
             text = file.read()
+        text=text.strip()
+        if not text:
+            raise EmptyDocument
 
         doc = self.nlp(text)
         self.sentences = [str(sent) for sent in doc.sents]
+        if not self.sentences:
+            raise EmptyDocument
         self.sentence_embeddings = [sent.vector for sent in doc.sents]
         self.summary_embedding = doc.vector #np.mean(self.sentence_embeddings, axis=0)
         self.sentence_index = create_kdtree(np.array(self.sentence_embeddings))
@@ -231,7 +238,11 @@ class DocumentIndex:
                     (not force_reindex):
                     continue
 
-                document = Document(file_path, nlp=self.nlp)
+                try:
+                    document = Document(file_path, nlp=self.nlp)
+                except EmptyDocument:
+                    continue
+
                 self.documents[file_path] = document
 
         # Recursive search for text files in subdirectories
