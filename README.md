@@ -38,6 +38,7 @@ To get started with FASDR, you can create a `DocumentIndex` object by passing in
 ```python
 from fasdr import DocumentIndex
 
+# Load an index or create one if it doesn't already exist
 index = DocumentIndex("/path/to/documents")
 ```
 
