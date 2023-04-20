@@ -12,5 +12,5 @@ jobs:
 
       - name: Generate Fasdr index and commit .embeddings folder
         uses: dmarx/fasdr-action@v1.0.2
-        #with:
-        #  path-to-index: /path/to/index
+        with:
+          path-to-index: ${{ github.repository }}
