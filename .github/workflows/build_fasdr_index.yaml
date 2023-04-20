@@ -11,6 +11,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Generate Fasdr index and commit .embeddings folder
-        uses: dmarx/fasdr-action@v1.0.2
+        uses: dmarx/fasdr-action@v1.0.3
         with:
-          path-to-index: ${{ github.repository }}
+          path-to-index: ./fast-and-simple-dense-retrieval
